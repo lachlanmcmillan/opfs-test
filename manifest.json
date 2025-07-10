@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "OPFS Access Test",
+    "version": "1.0",
+    "description": "Tests if navigator.storage.getDirectory() is accessible in a content script from a DevTools panel.",
+    "devtools_page": "devtools/devtools.html",
+    "permissions": [
+        "scripting",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    }
+}
