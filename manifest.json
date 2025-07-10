@@ -5,11 +5,11 @@
     "description": "Lists contents of OPFS using eval() to DOM, then content script.",
     "devtools_page": "devtools/devtools.html",
     "permissions": [
-        "scripting" // Needed for content_scripts if not static
-        // "activeTab" // Not strictly needed if content script is always running
+        "scripting",
+        "downloads" // NEW: Required for browser.downloads API
     ],
     "host_permissions": [
-        "<all_urls>" // Needed for content script to run on all pages
+        "<all_urls>"
     ],
     "background": {
         "scripts": [
@@ -24,7 +24,7 @@
             "js": [
                 "content_script.js"
             ],
-            "run_at": "document_start" // Run early to catch events
+            "run_at": "document_start"
         }
     ]
 }
