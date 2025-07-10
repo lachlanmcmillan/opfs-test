@@ -1,19 +1,30 @@
 {
     "manifest_version": 3,
-    "name": "OPFS Access Test",
+    "name": "OPFS Viewer (DOM Bridge)",
     "version": "1.0",
-    "description": "Tests if navigator.storage.getDirectory() is accessible in a content script from a DevTools panel.",
+    "description": "Lists contents of OPFS using eval() to DOM, then content script.",
     "devtools_page": "devtools/devtools.html",
     "permissions": [
-        "scripting",
-        "activeTab"
+        "scripting" // Needed for content_scripts if not static
+        // "activeTab" // Not strictly needed if content script is always running
     ],
     "host_permissions": [
-        "<all_urls>"
+        "<all_urls>" // Needed for content script to run on all pages
     ],
     "background": {
         "scripts": [
             "background.js"
         ]
-    }
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content_script.js"
+            ],
+            "run_at": "document_start" // Run early to catch events
+        }
+    ]
 }
