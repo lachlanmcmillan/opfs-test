@@ -1,0 +1,1 @@
+Proof of Concept to see if a OPFS extension is possible in Firefox.
