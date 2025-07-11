@@ -51,13 +51,13 @@
     </style>
 </head>
 <body>
-    <h1>Origin Private File System Direct Test</h1>
+    <h1>Origin Private File System Test</h1>
 
     <p>This page directly interacts with the OPFS of its own origin. Open your browser's Developer Tools (F12) to see console logs.</p>
 
     <div>
         <button id="addFile">Add Random File</button>
-        <button id="removeFile">Remove Last Added File</button>
+        <button id="removeFile">Remove All Files</button>
         <button id="listContents">List OPFS Contents</button>
     </div>
 
@@ -119,23 +119,26 @@
             }
         }
 
-        async function removeLastAddedFile() {
-            if (!lastAddedFileName) {
-                updateStatus('No file to remove. Add a file first.', true);
-                return;
-            }
-            updateStatus(`Removing file '${lastAddedFileName}'...`);
+        async function removeAllFiles() {
+            updateStatus('Removing all files...');
             const root = await getRootDirectory();
             if (!root) return;
 
+            let removedCount = 0;
             try {
-                await root.removeEntry(lastAddedFileName);
-                updateStatus(`File '${lastAddedFileName}' removed successfully.`);
+                for await (const entry of root.values()) {
+                    if (entry.kind === 'file') {
+                        await root.removeEntry(entry.name);
+                        removedCount++;
+                        console.log(`[Remove] File removed: ${entry.name}`);
+                    }
+                }
+                updateStatus(`Removed ${removedCount} file(s) from OPFS.`);
                 lastAddedFileName = null; // Clear tracking
                 await listOpfsContents(); // Refresh list after removal
             } catch (error) {
-                updateStatus(`Failed to remove file '${lastAddedFileName}': ${error.message} (${error.name})`, true);
-                console.error('Error removing file:', error);
+                updateStatus(`Failed to remove files: ${error.message} (${error.name})`, true);
+                console.error('Error removing files:', error);
             }
         }
 
@@ -211,7 +214,7 @@
 
         // Event Listeners
         addFileButton.addEventListener('click', addRandomFile);
-        removeFileButton.addEventListener('click', removeLastAddedFile);
+        removeFileButton.addEventListener('click', removeAllFiles);
         listContentsButton.addEventListener('click', listOpfsContents);
 
         // Initial list on page load
