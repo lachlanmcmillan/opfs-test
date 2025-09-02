@@ -130,36 +130,42 @@
 
       async function addRandomFile() {
         updateStatus("Adding random file...");
+        const fileName = generateRandomFileName();
+        const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
+
+        const start = performance.now();
+
         const root = await getRootDirectory();
         if (!root) return;
 
-        const fileName = generateRandomFileName();
         try {
           const fileHandle = await root.getFileHandle(fileName, {
             create: true,
           });
           const writable = await fileHandle.createWritable();
-          const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
           await writable.write(fileContent);
           await writable.close();
           lastAddedFileName = fileName; // Store for removal
-          updateStatus(`File '${fileName}' added successfully.`);
-          await listOpfsContents(); // Refresh list after adding
         } catch (error) {
           updateStatus(
             `Failed to add file '${fileName}': ${error.message} (${error.name})`,
             true
           );
           console.error("Error adding file:", error);
+          return;
         }
+        const end = performance.now();
+        updateStatus(`File '${fileName}' added successfully in ${end - start}ms.`);
+        await listOpfsContents(true); // Refresh list after adding
       }
 
       async function addRandomFileSync() {
         updateStatus("Adding random file sync...");
-
         const path = generateRandomFileName();
+        const fileContent = `This is content for ${path} created at ${new Date().toISOString()}`;
+        const start = performance.now();
+
         try {
-          const fileContent = `This is content for ${path} created at ${new Date().toISOString()}`;
           const worker = new Worker("opfs.worker.js");
           if (!worker) {
             updateStatus("Failed to create worker.", true);
@@ -167,21 +173,22 @@
           }
           worker.onerror = (error) => {
             updateStatus(`Worker error: ${error.message}`, true);
-            console.error("Worker error:", error);
           };
           worker.postMessage({ path, data: fileContent });
           await new Promise((resolve) => (worker.onmessage = resolve));
           worker.terminate();
           lastAddedFileName = path; // Store for removal
-          updateStatus(`File '${path}' added successfully.`);
-          await listOpfsContents(); // Refresh list after adding
         } catch (error) {
           updateStatus(
             `Failed to add file '${path}': ${error.message} (${error.name})`,
             true
           );
           console.error("Error adding file:", error);
+          return;
         }
+        const end = performance.now();
+        updateStatus(`File '${path}' added successfully (web worker) in ${end - start}ms.`);
+        await listOpfsContents(true); // Refresh list after adding
       }
 
       async function removeAllFiles() {
@@ -200,7 +207,7 @@
           }
           updateStatus(`Removed ${removedCount} file(s) from OPFS.`);
           lastAddedFileName = null; // Clear tracking
-          await listOpfsContents(); // Refresh list after removal
+          await listOpfsContents(true); // Refresh list after removal
         } catch (error) {
           updateStatus(
             `Failed to remove files: ${error.message} (${error.name})`,
@@ -210,8 +217,10 @@
         }
       }
 
-      async function listOpfsContents() {
-        updateStatus("Listing OPFS contents...");
+      async function listOpfsContents(quite = false) {
+        if (!quite) {
+          updateStatus("Listing OPFS contents...");
+        }
         const root = await getRootDirectory();
         if (!root) {
           opfsContentsPre.textContent = "Could not access OPFS.";
@@ -303,11 +312,14 @@
           }
         });
         opfsContentsPre.innerHTML = output;
-        updateStatus("OPFS contents listed successfully.");
+        if (!quite) {
+          updateStatus("OPFS contents listed successfully.");
+        }
       }
 
       async function readFile(path) {
         updateStatus(`Reading file: ${path}`);
+        const start = performance.now();
         try {
           const root = await getRootDirectory();
           const fileHandle = await root.getFileHandle(path);
@@ -317,7 +329,10 @@
         } catch (error) {
           updateStatus(`Failed to read file: ${error.message}`, true);
           console.error("Error reading file:", error);
+          return;
         }
+        const end = performance.now();
+        updateStatus(`File '${path}' read successfully in ${end - start}ms.`);
       }
 
       // Event Listeners
