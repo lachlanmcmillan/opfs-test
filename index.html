@@ -23,6 +23,7 @@
             font-size: 1em;
         }
         button#addFile { background-color: #28a745; color: white; }
+        button#addFileSync { background-color: #06651c; color: white; }
         button#removeFile { background-color: #dc3545; color: white; }
         button#listContents { background-color: #007bff; color: white; }
         button:disabled {
@@ -57,6 +58,7 @@
 
     <div>
         <button id="addFile">Add Random File</button>
+        <button id="addFileSync">Add Random File Sync</button>
         <button id="removeFile">Remove All Files</button>
         <button id="listContents">List OPFS Contents</button>
     </div>
@@ -70,6 +72,7 @@
         const statusDiv = document.getElementById('status');
         const opfsContentsPre = document.getElementById('opfsContents');
         const addFileButton = document.getElementById('addFile');
+        const addFileSyncButton = document.getElementById('addFileSync');
         const removeFileButton = document.getElementById('removeFile');
         const listContentsButton = document.getElementById('listContents');
 
@@ -110,6 +113,36 @@
                 const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
                 await writable.write(fileContent);
                 await writable.close();
+                lastAddedFileName = fileName; // Store for removal
+                updateStatus(`File '${fileName}' added successfully.`);
+                await listOpfsContents(); // Refresh list after adding
+            } catch (error) {
+                updateStatus(`Failed to add file '${fileName}': ${error.message} (${error.name})`, true);
+                console.error('Error adding file:', error);
+            }
+        }
+
+        async function addRandomFileSync() {
+            updateStatus('Adding random file sync...');
+            const root = await getRootDirectory();
+            if (!root) return;
+
+            const fileName = generateRandomFileName();
+            try {
+                const fileHandle = await root.getFileHandle(fileName, { create: true });
+                const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
+                const worker = new Worker('opfs.worker.js');
+                if (!worker) {
+                    updateStatus('Failed to create worker.', true);
+                    return;
+                }
+                worker.onerror = (error) => {
+                    updateStatus(`Worker error: ${error.message}`, true);
+                    console.error('Worker error:', error);
+                };
+                worker.postMessage({ fileHandle, data: fileContent });
+                await new Promise(resolve => worker.onmessage = resolve);
+                worker.terminate();
                 lastAddedFileName = fileName; // Store for removal
                 updateStatus(`File '${fileName}' added successfully.`);
                 await listOpfsContents(); // Refresh list after adding
@@ -214,6 +247,7 @@
 
         // Event Listeners
         addFileButton.addEventListener('click', addRandomFile);
+        addFileSyncButton.addEventListener('click', addRandomFileSync);
         removeFileButton.addEventListener('click', removeAllFiles);
         listContentsButton.addEventListener('click', listOpfsContents);
 
