@@ -124,13 +124,10 @@
 
         async function addRandomFileSync() {
             updateStatus('Adding random file sync...');
-            const root = await getRootDirectory();
-            if (!root) return;
 
-            const fileName = generateRandomFileName();
+            const path = generateRandomFileName();
             try {
-                const fileHandle = await root.getFileHandle(fileName, { create: true });
-                const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
+                const fileContent = `This is content for ${path} created at ${new Date().toISOString()}`;
                 const worker = new Worker('opfs.worker.js');
                 if (!worker) {
                     updateStatus('Failed to create worker.', true);
@@ -140,14 +137,14 @@
                     updateStatus(`Worker error: ${error.message}`, true);
                     console.error('Worker error:', error);
                 };
-                worker.postMessage({ fileHandle, data: fileContent });
+                worker.postMessage({ path, data: fileContent });
                 await new Promise(resolve => worker.onmessage = resolve);
                 worker.terminate();
-                lastAddedFileName = fileName; // Store for removal
-                updateStatus(`File '${fileName}' added successfully.`);
+                lastAddedFileName = path; // Store for removal
+                updateStatus(`File '${path}' added successfully.`);
                 await listOpfsContents(); // Refresh list after adding
             } catch (error) {
-                updateStatus(`Failed to add file '${fileName}': ${error.message} (${error.name})`, true);
+                updateStatus(`Failed to add file '${path}': ${error.message} (${error.name})`, true);
                 console.error('Error adding file:', error);
             }
         }
