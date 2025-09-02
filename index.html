@@ -79,10 +79,10 @@
     </p>
 
     <div>
-      <button id="addFile">Add Random File</button>
-      <button id="addFile10MB">Add Random File (10MB)</button>
-      <button id="addFileSync">Add Random File Sync</button>
-      <button id="addFileSync10MB">Add Random File Sync (10MB)</button>
+      <button id="addFile">Add File</button>
+      <button id="addFile10MB">Add File (10MB)</button>
+      <button id="addFileSync">Add File in Worker (Sync)</button>
+      <button id="addFileSync10MB">Add File in Worker (Sync) (10MB)</button>
       <button id="removeFile">Remove All Files</button>
       <button id="listContents">List OPFS Contents</button>
     </div>
@@ -105,6 +105,17 @@
       const removeFileButton = document.getElementById("removeFile");
       const listContentsButton = document.getElementById("listContents");
       const fileContentsPre = document.getElementById("fileContents");
+
+      // --- spin up the worker ahead of time
+      const worker = new Worker("opfs.worker.js");
+      if (!worker) {
+        updateStatus("Failed to create worker.", true);
+        addFileSyncButton.disabled = true;
+        addFileSync10MBButton.disabled = true;
+      }
+      worker.onerror = (error) => {
+        updateStatus(`Worker error: ${error.message}`, true);
+      };
 
       let lastAddedFileName = null; // To track the last file for removal
 
@@ -178,18 +189,8 @@
         const start = performance.now();
 
         try {
-          const worker = new Worker("opfs.worker.js");
-          if (!worker) {
-            updateStatus("Failed to create worker.", true);
-            return;
-          }
-          worker.onerror = (error) => {
-            updateStatus(`Worker error: ${error.message}`, true);
-          };
           worker.postMessage({ path, data: fileContent });
           await new Promise((resolve) => (worker.onmessage = resolve));
-          worker.terminate();
-          lastAddedFileName = path; // Store for removal
         } catch (error) {
           updateStatus(
             `Failed to add file '${path}': ${error.message} (${error.name})`,
@@ -198,6 +199,7 @@
           console.error("Error adding file:", error);
           return;
         }
+        lastAddedFileName = path; // Store for removal
         const end = performance.now();
         updateStatus(`File '${path}' added successfully (web worker) in ${end - start}ms.`);
         await listOpfsContents(true); // Refresh list after adding
