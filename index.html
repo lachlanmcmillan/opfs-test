@@ -23,11 +23,11 @@
         cursor: pointer;
         font-size: 1em;
       }
-      button#addFile {
+      button#addFile, button#addFile10MB {
         background-color: #28a745;
         color: white;
       }
-      button#addFileSync {
+      button#addFileSync, button#addFileSync10MB {
         background-color: #06651c;
         color: white;
       }
@@ -59,8 +59,10 @@
         background-color: #e6f2ff;
         border-radius: 5px;
         min-height: 100px;
-        white-space: pre-wrap; /* Preserve formatting */
         font-family: monospace;
+        white-space: pre-wrap; /* Allows text to wrap in a <pre> tag */
+        overflow-wrap: break-word; /* Breaks long words that would overflow */
+        overflow: auto;
       }
       .error {
         color: red;
@@ -78,7 +80,9 @@
 
     <div>
       <button id="addFile">Add Random File</button>
+      <button id="addFile10MB">Add Random File (10MB)</button>
       <button id="addFileSync">Add Random File Sync</button>
+      <button id="addFileSync10MB">Add Random File Sync (10MB)</button>
       <button id="removeFile">Remove All Files</button>
       <button id="listContents">List OPFS Contents</button>
     </div>
@@ -95,7 +99,9 @@
       const statusDiv = document.getElementById("status");
       const opfsContentsPre = document.getElementById("opfsContents");
       const addFileButton = document.getElementById("addFile");
+      const addFile10MBButton = document.getElementById("addFile10MB");
       const addFileSyncButton = document.getElementById("addFileSync");
+      const addFileSync10MBButton = document.getElementById("addFileSync10MB");
       const removeFileButton = document.getElementById("removeFile");
       const listContentsButton = document.getElementById("listContents");
       const fileContentsPre = document.getElementById("fileContents");
@@ -128,10 +134,10 @@
         }
       }
 
-      async function addRandomFile() {
+      async function addRandomFile(contents) {
         updateStatus("Adding random file...");
         const fileName = generateRandomFileName();
-        const fileContent = `This is content for ${fileName} created at ${new Date().toISOString()}`;
+        const fileContent = contents || `This is content for ${fileName} created at ${new Date().toISOString()}`;
 
         const start = performance.now();
 
@@ -159,10 +165,16 @@
         await listOpfsContents(true); // Refresh list after adding
       }
 
-      async function addRandomFileSync() {
+      async function addRandomFile10MB() {
+        const randomText = generateRandomText(10 * 1024 * 1024); // 10MB
+        console.log(randomText.length); // Should print around 10485760
+        addRandomFile(randomText);
+      }
+
+      async function addRandomFileSync(contents) {
         updateStatus("Adding random file sync...");
         const path = generateRandomFileName();
-        const fileContent = `This is content for ${path} created at ${new Date().toISOString()}`;
+        const fileContent = contents || `This is content for ${path} created at ${new Date().toISOString()}`;
         const start = performance.now();
 
         try {
@@ -189,6 +201,12 @@
         const end = performance.now();
         updateStatus(`File '${path}' added successfully (web worker) in ${end - start}ms.`);
         await listOpfsContents(true); // Refresh list after adding
+      }
+
+      async function addRandomFileSync10MB() {
+        const randomText = generateRandomText(10 * 1024 * 1024); // 10MB
+        console.log(randomText.length); // Should print around 10485760
+        addRandomFileSync(randomText);
       }
 
       async function removeAllFiles() {
@@ -335,11 +353,27 @@
         updateStatus(`File '${path}' read successfully in ${end - start}ms.`);
       }
 
+      function generateRandomText(sizeInBytes) {
+        const CHUNK_SIZE = 1024 * 1024; // 1MB chunks for efficiency
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        while (result.length < sizeInBytes) {
+          let chunk = '';
+          for (let i = 0; i < CHUNK_SIZE && result.length + chunk.length < sizeInBytes; i++) {
+            chunk += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          result += chunk;
+        }
+        return result;
+      }
+
       // Event Listeners
-      addFileButton.addEventListener("click", addRandomFile);
-      addFileSyncButton.addEventListener("click", addRandomFileSync);
-      removeFileButton.addEventListener("click", removeAllFiles);
-      listContentsButton.addEventListener("click", listOpfsContents);
+      addFileButton.addEventListener("click", () => addRandomFile());
+      addFile10MBButton.addEventListener("click", () => addRandomFile10MB());
+      addFileSyncButton.addEventListener("click", () => addRandomFileSync());
+      addFileSync10MBButton.addEventListener("click", () => addRandomFileSync10MB());
+      removeFileButton.addEventListener("click", () => removeAllFiles());
+      listContentsButton.addEventListener("click", () => listOpfsContents());
 
       // Initial list on page load
       document.addEventListener("DOMContentLoaded", listOpfsContents);
