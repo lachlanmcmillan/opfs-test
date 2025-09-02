@@ -51,7 +51,8 @@
         border-radius: 5px;
         min-height: 30px;
       }
-      #opfsContents, #fileContents {
+      #opfsContents,
+      #fileContents {
         margin-top: 20px;
         padding: 15px;
         border: 1px solid #0056b3;
@@ -308,7 +309,7 @@
       async function readFile(path) {
         updateStatus(`Reading file: ${path}`);
         try {
-          const root = await getRootDirectory()
+          const root = await getRootDirectory();
           const fileHandle = await root.getFileHandle(path);
           const file = await fileHandle.getFile();
           const text = await file.text();
