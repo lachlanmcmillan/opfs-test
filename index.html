@@ -51,7 +51,7 @@
         border-radius: 5px;
         min-height: 30px;
       }
-      #opfsContents {
+      #opfsContents, #fileContents {
         margin-top: 20px;
         padding: 15px;
         border: 1px solid #0056b3;
@@ -87,6 +87,9 @@
     <h2>OPFS Contents:</h2>
     <pre id="opfsContents">Click "List OPFS Contents" to see files.</pre>
 
+    <h2>File Contents:</h2>
+    <pre id="fileContents">Click on a file to read its contents.</pre>
+
     <script>
       const statusDiv = document.getElementById("status");
       const opfsContentsPre = document.getElementById("opfsContents");
@@ -94,6 +97,7 @@
       const addFileSyncButton = document.getElementById("addFileSync");
       const removeFileButton = document.getElementById("removeFile");
       const listContentsButton = document.getElementById("listContents");
+      const fileContentsPre = document.getElementById("fileContents");
 
       let lastAddedFileName = null; // To track the last file for removal
 
@@ -292,13 +296,27 @@
           if (item.kind === "directory") {
             output += `${indent}📁 ${item.name}/\n`;
           } else if (item.kind === "file") {
-            output += `${indent}📄 ${item.name} (${item.size})\n`;
+            output += `${indent}📄 <a href="#" onclick="readFile('${item.path}')">${item.name}</a> (${item.size})\n`;
           } else if (item.kind === "error") {
             output += `${indent}❌ ${item.name}: ${item.message}\n`;
           }
         });
-        opfsContentsPre.textContent = output;
+        opfsContentsPre.innerHTML = output;
         updateStatus("OPFS contents listed successfully.");
+      }
+
+      async function readFile(path) {
+        updateStatus(`Reading file: ${path}`);
+        try {
+          const root = await getRootDirectory()
+          const fileHandle = await root.getFileHandle(path);
+          const file = await fileHandle.getFile();
+          const text = await file.text();
+          fileContentsPre.textContent = text;
+        } catch (error) {
+          updateStatus(`Failed to read file: ${error.message}`, true);
+          console.error("Error reading file:", error);
+        }
       }
 
       // Event Listeners
